@@ -127,6 +127,11 @@ def process_dataframe(df, sheet_name='Sheet1'):
         'output_rows': 0,
     }
 
+    # Clean column names — drop NaN/float headers, strip whitespace
+    df.columns = [str(c).strip() if not pd.isna(c) else f'_col_{i}' for i, c in enumerate(df.columns)]
+    # Drop unnamed filler columns (e.g. 'Unnamed: 5', '_col_3')
+    df = df.loc[:, ~df.columns.str.match(r'^(Unnamed:|_col_\d+)')]
+
     # Drop fully blank rows
     before = len(df)
     df = df.dropna(how='all')
@@ -200,7 +205,7 @@ def process_dataframe(df, sheet_name='Sheet1'):
     if pid_col:
         df['Patient ID'] = df[pid_col].astype(str).str.strip()
         malformed = df['Patient ID'].apply(
-            lambda x: bool(re.search(r'[^a-zA-Z0-9\-_]', x)) or x in ('', 'nan', 'NaN')
+            lambda x: pd.isna(x) or bool(re.search(r'[^a-zA-Z0-9\-_]', str(x))) or str(x) in ('', 'nan', 'NaN')
         )
         stats['malformed_ids'] = int(malformed.sum())
     else:
@@ -341,6 +346,12 @@ def write_excel(all_dfs, all_stats, original_name):
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    return jsonify({'error': traceback.format_exc()}), 500
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -393,7 +404,8 @@ def clean():
                 all_dfs.append(cleaned_df)
             all_stats.append(stats)
     except Exception as e:
-        return jsonify({'error': f'Processing error: {str(e)}'}), 500
+        import traceback
+        return jsonify({'error': f'Processing error: {traceback.format_exc()}'}), 500
 
     if not all_stats:
         return jsonify({'error': 'No processable data found in the file'}), 400
