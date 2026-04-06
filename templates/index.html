@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMR Patient Data Cleaner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(31,78,121,.12);
+      padding: 48px 40px 40px;
+      max-width: 560px;
+      width: 100%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: #1F4E79;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 22px;
+    }
+
+    h1 {
+      font-size: 22px;
+      color: #1F4E79;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 13.5px;
+      margin-bottom: 32px;
+      margin-top: 4px;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed #a8c4e0;
+      border-radius: 12px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      background: #f8fbff;
+      position: relative;
+    }
+
+    .drop-zone.dragover {
+      border-color: #1F4E79;
+      background: #e8f0f8;
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+
+    .drop-icon { font-size: 40px; margin-bottom: 12px; }
+
+    .drop-text { color: #334155; font-size: 15px; font-weight: 500; }
+    .drop-sub  { color: #94a3b8; font-size: 13px; margin-top: 6px; }
+
+    .file-chosen {
+      display: none;
+      margin-top: 14px;
+      background: #e8f0f8;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13.5px;
+      color: #1F4E79;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .file-chosen.show { display: flex; }
+    .file-chosen .fname { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-chosen .remove-btn { cursor: pointer; color: #94a3b8; font-size: 18px; line-height: 1; }
+    .file-chosen .remove-btn:hover { color: #e53e3e; }
+
+    .btn {
+      margin-top: 24px;
+      width: 100%;
+      padding: 13px;
+      background: #1F4E79;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+
+    .btn:hover:not(:disabled) { background: #163d61; }
+    .btn:active:not(:disabled) { transform: scale(0.99); }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* Spinner */
+    .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 3px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Status */
+    .status {
+      margin-top: 18px;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 13.5px;
+      display: none;
+    }
+
+    .status.error   { background: #fff0f0; color: #c0392b; border: 1px solid #fcc; display: block; }
+    .status.success { background: #f0fff4; color: #1a7a42; border: 1px solid #9be9b0; display: block; }
+    .status.info    { background: #f0f8ff; color: #1F4E79;  border: 1px solid #a8c4e0; display: block; }
+
+    /* Rules summary */
+    .rules {
+      margin-top: 32px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 24px;
+    }
+
+    .rules h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
+
+    .rule-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .rule-item {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 12.5px; color: #475569;
+    }
+
+    .rule-item .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #1F4E79;
+      margin-top: 4px; flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🏥</div>
+      <h1>EMR Data Cleaner</h1>
+    </div>
+    <p class="subtitle">Upload a patient data file — get back a cleaned, migration-ready Excel file.</p>
+
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+      <div class="drop-icon">📂</div>
+      <div class="drop-text">Drop your file here or <u>browse</u></div>
+      <div class="drop-sub">Supports .xlsx, .xls, .csv — up to 50 MB</div>
+    </div>
+
+    <div class="file-chosen" id="fileChosen">
+      <span>📄</span>
+      <span class="fname" id="fileNameLabel"></span>
+      <span class="remove-btn" id="removeFile" title="Remove">✕</span>
+    </div>
+
+    <button class="btn" id="cleanBtn" disabled>
+      <span class="spinner" id="spinner"></span>
+      <span id="btnText">Clean &amp; Download</span>
+    </button>
+
+    <div class="status" id="statusBox"></div>
+
+    <div class="rules">
+      <h3>What gets cleaned</h3>
+      <div class="rule-grid">
+        <div class="rule-item"><div class="dot"></div>Duplicate removal (name + mobile)</div>
+        <div class="rule-item"><div class="dot"></div>10-digit mobile standardisation</div>
+        <div class="rule-item"><div class="dot"></div>DOB → YYYY-MM-DD format</div>
+        <div class="rule-item"><div class="dot"></div>Name → Title Case</div>
+        <div class="rule-item"><div class="dot"></div>Junk / test records removed</div>
+        <div class="rule-item"><div class="dot"></div>Age → years-only (e.g. 6y)</div>
+        <div class="rule-item"><div class="dot"></div>Blank names defaulted to ABC</div>
+        <div class="rule-item"><div class="dot"></div>Invalid mobiles → 9999999990</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dropZone    = document.getElementById('dropZone');
+    const fileInput   = document.getElementById('fileInput');
+    const fileChosen  = document.getElementById('fileChosen');
+    const fileNameLbl = document.getElementById('fileNameLabel');
+    const removeBtn   = document.getElementById('removeFile');
+    const cleanBtn    = document.getElementById('cleanBtn');
+    const spinner     = document.getElementById('spinner');
+    const btnText     = document.getElementById('btnText');
+    const statusBox   = document.getElementById('statusBox');
+
+    let selectedFile = null;
+
+    function setFile(file) {
+      if (!file) return;
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['xlsx','xls','csv'].includes(ext)) {
+        showStatus('Unsupported file type. Please upload .xlsx, .xls or .csv.', 'error');
+        return;
+      }
+      selectedFile = file;
+      fileNameLbl.textContent = file.name;
+      fileChosen.classList.add('show');
+      cleanBtn.disabled = false;
+      clearStatus();
+    }
+
+    function clearFile() {
+      selectedFile = null;
+      fileInput.value = '';
+      fileChosen.classList.remove('show');
+      cleanBtn.disabled = true;
+      clearStatus();
+    }
+
+    function showStatus(msg, type) {
+      statusBox.textContent = msg;
+      statusBox.className = 'status ' + type;
+    }
+
+    function clearStatus() {
+      statusBox.className = 'status';
+      statusBox.textContent = '';
+    }
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) setFile(fileInput.files[0]);
+    });
+
+    removeBtn.addEventListener('click', clearFile);
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+    });
+
+    cleanBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      cleanBtn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Processing…';
+      clearStatus();
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      try {
+        showStatus('Uploading and cleaning your file…', 'info');
+        const resp = await fetch('/clean', { method: 'POST', body: formData });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ error: 'Unexpected server error.' }));
+          showStatus('Error: ' + err.error, 'error');
+          return;
+        }
+
+        const blob = await resp.blob();
+        const disposition = resp.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        const outName = match ? match[1] : 'Cleaned_output.xlsx';
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = outName; a.click();
+        URL.revokeObjectURL(url);
+
+        showStatus(`Done! "${outName}" has been downloaded.`, 'success');
+      } catch (e) {
+        showStatus('Network error: ' + e.message, 'error');
+      } finally {
+        cleanBtn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Clean & Download';
+      }
+    });
+  </script>
+</body>
+</html>
