@@ -360,7 +360,19 @@ def clean():
 
     try:
         if ext == 'csv':
-            df = pd.read_csv(f, dtype=str, keep_default_na=False)
+            raw = f.read()
+            # Try common encodings used in Indian healthcare data
+            for enc in ('utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1'):
+                try:
+                    df = pd.read_csv(
+                        io.BytesIO(raw), dtype=str,
+                        keep_default_na=False, encoding=enc
+                    )
+                    break
+                except (UnicodeDecodeError, Exception):
+                    continue
+            else:
+                return jsonify({'error': 'Could not decode CSV file. Try saving it as UTF-8 from Excel.'}), 400
             df = df.replace('', pd.NA)
             sheets = {'Sheet1': df}
         else:
@@ -372,13 +384,16 @@ def clean():
         return jsonify({'error': f'Could not read file: {str(e)}'}), 400
 
     all_dfs, all_stats = [], []
-    for sn, df in sheets.items():
-        if df.empty:
-            continue
-        cleaned_df, stats = process_dataframe(df, sheet_name=sn)
-        if not cleaned_df.empty:
-            all_dfs.append(cleaned_df)
-        all_stats.append(stats)
+    try:
+        for sn, df in sheets.items():
+            if df.empty:
+                continue
+            cleaned_df, stats = process_dataframe(df, sheet_name=sn)
+            if not cleaned_df.empty:
+                all_dfs.append(cleaned_df)
+            all_stats.append(stats)
+    except Exception as e:
+        return jsonify({'error': f'Processing error: {str(e)}'}), 500
 
     if not all_stats:
         return jsonify({'error': 'No processable data found in the file'}), 400
