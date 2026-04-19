@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EMR Patient Data Cleaner</title>
+  <title>EMR Data Cleaner</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -21,8 +21,8 @@
       background: #fff;
       border-radius: 16px;
       box-shadow: 0 4px 24px rgba(31,78,121,.12);
-      padding: 48px 40px 40px;
-      max-width: 560px;
+      padding: 40px 40px 36px;
+      max-width: 580px;
       width: 100%;
     }
 
@@ -30,7 +30,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 8px;
+      margin-bottom: 20px;
     }
 
     .logo-icon {
@@ -41,23 +41,49 @@
       color: #fff; font-size: 22px;
     }
 
-    h1 {
-      font-size: 22px;
-      color: #1F4E79;
-      font-weight: 700;
+    h1 { font-size: 22px; color: #1F4E79; font-weight: 700; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 28px;
     }
+
+    .tab-btn {
+      padding: 9px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #94a3b8;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+
+    .tab-btn.active {
+      color: #1F4E79;
+      border-bottom-color: #1F4E79;
+    }
+
+    .tab-btn:hover:not(.active) { color: #475569; }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
 
     .subtitle {
       color: #64748b;
       font-size: 13.5px;
-      margin-bottom: 32px;
-      margin-top: 4px;
+      margin-bottom: 24px;
     }
 
+    /* Drop zone */
     .drop-zone {
       border: 2px dashed #a8c4e0;
       border-radius: 12px;
-      padding: 40px 24px;
+      padding: 36px 24px;
       text-align: center;
       cursor: pointer;
       transition: border-color .2s, background .2s;
@@ -65,22 +91,19 @@
       position: relative;
     }
 
-    .drop-zone.dragover {
-      border-color: #1F4E79;
-      background: #e8f0f8;
-    }
+    .drop-zone.dragover { border-color: #1F4E79; background: #e8f0f8; }
 
     .drop-zone input[type="file"] {
       position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
     }
 
-    .drop-icon { font-size: 40px; margin-bottom: 12px; }
+    .drop-icon { font-size: 38px; margin-bottom: 10px; }
     .drop-text { color: #334155; font-size: 15px; font-weight: 500; }
     .drop-sub  { color: #94a3b8; font-size: 13px; margin-top: 6px; }
 
     .file-chosen {
       display: none;
-      margin-top: 14px;
+      margin-top: 12px;
       background: #e8f0f8;
       border-radius: 8px;
       padding: 10px 16px;
@@ -96,7 +119,7 @@
     .file-chosen .remove-btn:hover { color: #e53e3e; }
 
     .btn {
-      margin-top: 24px;
+      margin-top: 20px;
       width: 100%;
       padding: 13px;
       background: #1F4E79;
@@ -125,9 +148,9 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .status {
-      margin-top: 18px;
+      margin-top: 16px;
       border-radius: 10px;
-      padding: 14px 18px;
+      padding: 13px 18px;
       font-size: 13.5px;
       display: none;
     }
@@ -136,39 +159,40 @@
     .status.success { background: #f0fff4; color: #1a7a42; border: 1px solid #9be9b0; display: block; }
     .status.info    { background: #f0f8ff; color: #1F4E79;  border: 1px solid #a8c4e0; display: block; }
 
+    /* Rules summary */
     .rules {
-      margin-top: 32px;
+      margin-top: 28px;
       border-top: 1px solid #e2e8f0;
-      padding-top: 24px;
+      padding-top: 20px;
     }
 
     .rules h3 {
-      font-size: 13px;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: .06em;
       color: #94a3b8;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .rule-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 7px;
     }
 
     .rule-item {
-      display: flex; align-items: flex-start; gap: 8px;
-      font-size: 12.5px; color: #475569;
+      display: flex; align-items: flex-start; gap: 7px;
+      font-size: 12px; color: #475569;
     }
 
     .rule-item .dot {
-      width: 7px; height: 7px;
+      width: 6px; height: 6px;
       border-radius: 50%;
       background: #1F4E79;
       margin-top: 4px; flex-shrink: 0;
     }
 
-    /* Modal overlay */
+    /* ── Modal ── */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -186,7 +210,7 @@
       background: #fff;
       border-radius: 16px;
       box-shadow: 0 8px 40px rgba(31,78,121,.22);
-      padding: 36px 32px 28px;
+      padding: 34px 30px 26px;
       max-width: 420px;
       width: 100%;
       animation: pop .18s ease;
@@ -197,26 +221,12 @@
       to   { transform: scale(1);   opacity: 1; }
     }
 
-    .modal-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: #1F4E79;
-      margin-bottom: 6px;
-    }
-
-    .modal-sub {
-      font-size: 13px;
-      color: #64748b;
-      margin-bottom: 22px;
-      line-height: 1.5;
-    }
+    .modal-title { font-size: 17px; font-weight: 700; color: #1F4E79; margin-bottom: 5px; }
+    .modal-sub   { font-size: 13px; color: #64748b; margin-bottom: 20px; line-height: 1.5; }
 
     .modal-label {
       display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #334155;
-      margin-bottom: 7px;
+      font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;
     }
 
     .modal-input {
@@ -224,61 +234,35 @@
       padding: 11px 14px;
       border: 1.5px solid #a8c4e0;
       border-radius: 8px;
-      font-size: 15px;
+      font-size: 14px;
       color: #1F4E79;
       background: #f8fbff;
       outline: none;
       transition: border-color .2s;
       font-family: 'Segoe UI', Arial, sans-serif;
-      letter-spacing: .05em;
       font-weight: 600;
-      text-transform: uppercase;
     }
 
     .modal-input:focus { border-color: #1F4E79; background: #fff; }
     .modal-input.invalid { border-color: #e53e3e; background: #fff5f5; }
 
-    .modal-hint {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-top: 6px;
-      min-height: 16px;
-    }
-
+    .modal-hint { font-size: 12px; color: #94a3b8; margin-top: 6px; min-height: 16px; }
     .modal-hint.error { color: #c0392b; }
 
-    .modal-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 24px;
-    }
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
 
     .modal-cancel {
-      flex: 1;
-      padding: 11px;
-      background: #f1f5f9;
-      color: #475569;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .15s;
+      flex: 1; padding: 11px; background: #f1f5f9; color: #475569;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .15s;
     }
 
     .modal-cancel:hover { background: #e2e8f0; }
 
     .modal-confirm {
-      flex: 2;
-      padding: 11px;
-      background: #1F4E79;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .15s;
+      flex: 2; padding: 11px; background: #1F4E79; color: #fff;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .15s;
     }
 
     .modal-confirm:hover { background: #163d61; }
@@ -291,51 +275,99 @@
       <div class="logo-icon">🏥</div>
       <h1>EMR Data Cleaner</h1>
     </div>
-    <p class="subtitle">Upload a patient data file — get back a cleaned, migration-ready Excel file.</p>
 
-    <div class="drop-zone" id="dropZone">
-      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
-      <div class="drop-icon">📂</div>
-      <div class="drop-text">Drop your file here or <u>browse</u></div>
-      <div class="drop-sub">Supports .xlsx, .xls, .csv — up to 50 MB</div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="patient">Patient Data</button>
+      <button class="tab-btn" data-tab="pharmacy">Pharmacy Data</button>
     </div>
 
-    <div class="file-chosen" id="fileChosen">
-      <span>📄</span>
-      <span class="fname" id="fileNameLabel"></span>
-      <span class="remove-btn" id="removeFile" title="Remove">✕</span>
+    <!-- ── Patient Data Tab ── -->
+    <div class="tab-pane active" id="tab-patient">
+      <p class="subtitle">Upload a patient data file — get back a cleaned, migration-ready Excel file.</p>
+
+      <div class="drop-zone" id="pDrop">
+        <input type="file" id="pFileInput" accept=".xlsx,.xls,.csv" />
+        <div class="drop-icon">📂</div>
+        <div class="drop-text">Drop your file here or <u>browse</u></div>
+        <div class="drop-sub">Supports .xlsx, .xls, .csv — up to 50 MB</div>
+      </div>
+
+      <div class="file-chosen" id="pFileChosen">
+        <span>📄</span>
+        <span class="fname" id="pFileName"></span>
+        <span class="remove-btn" id="pRemove" title="Remove">✕</span>
+      </div>
+
+      <button class="btn" id="pCleanBtn" disabled>
+        <span class="spinner" id="pSpinner"></span>
+        <span id="pBtnText">Clean &amp; Download</span>
+      </button>
+
+      <div class="status" id="pStatus"></div>
+
+      <div class="rules">
+        <h3>What gets cleaned</h3>
+        <div class="rule-grid">
+          <div class="rule-item"><div class="dot"></div>Duplicate removal (name + mobile)</div>
+          <div class="rule-item"><div class="dot"></div>10-digit mobile standardisation</div>
+          <div class="rule-item"><div class="dot"></div>DOB → YYYY-MM-DD format</div>
+          <div class="rule-item"><div class="dot"></div>Name → Title Case</div>
+          <div class="rule-item"><div class="dot"></div>Junk / test records removed</div>
+          <div class="rule-item"><div class="dot"></div>Age → years-only (e.g. 6y)</div>
+          <div class="rule-item"><div class="dot"></div>Blank names defaulted to ABC</div>
+          <div class="rule-item"><div class="dot"></div>Invalid mobiles → 9999999990</div>
+        </div>
+      </div>
     </div>
 
-    <button class="btn" id="cleanBtn" disabled>
-      <span class="spinner" id="spinner"></span>
-      <span id="btnText">Clean &amp; Download</span>
-    </button>
+    <!-- ── Pharmacy Data Tab ── -->
+    <div class="tab-pane" id="tab-pharmacy">
+      <p class="subtitle">Upload pharmacy stock data — get back a migration-ready Excel in the standard format.</p>
 
-    <div class="status" id="statusBox"></div>
+      <div class="drop-zone" id="rxDrop">
+        <input type="file" id="rxFileInput" accept=".xlsx,.xls,.csv" />
+        <div class="drop-icon">💊</div>
+        <div class="drop-text">Drop your pharmacy file here or <u>browse</u></div>
+        <div class="drop-sub">Supports .xlsx, .xls, .csv — up to 50 MB</div>
+      </div>
 
-    <div class="rules">
-      <h3>What gets cleaned</h3>
-      <div class="rule-grid">
-        <div class="rule-item"><div class="dot"></div>Duplicate removal (name + mobile)</div>
-        <div class="rule-item"><div class="dot"></div>10-digit mobile standardisation</div>
-        <div class="rule-item"><div class="dot"></div>DOB → YYYY-MM-DD format</div>
-        <div class="rule-item"><div class="dot"></div>Name → Title Case</div>
-        <div class="rule-item"><div class="dot"></div>Junk / test records removed</div>
-        <div class="rule-item"><div class="dot"></div>Age → years-only (e.g. 6y)</div>
-        <div class="rule-item"><div class="dot"></div>Blank names defaulted to ABC</div>
-        <div class="rule-item"><div class="dot"></div>Invalid mobiles → 9999999990</div>
+      <div class="file-chosen" id="rxFileChosen">
+        <span>📄</span>
+        <span class="fname" id="rxFileName"></span>
+        <span class="remove-btn" id="rxRemove" title="Remove">✕</span>
+      </div>
+
+      <button class="btn" id="rxCleanBtn" disabled>
+        <span class="spinner" id="rxSpinner"></span>
+        <span id="rxBtnText">Clean &amp; Download</span>
+      </button>
+
+      <div class="status" id="rxStatus"></div>
+
+      <div class="rules">
+        <h3>What gets standardised</h3>
+        <div class="rule-grid">
+          <div class="rule-item"><div class="dot"></div>Supplier name filled for all rows</div>
+          <div class="rule-item"><div class="dot"></div>Exp. Date → Mon-YYYY (e.g. Dec-2026)</div>
+          <div class="rule-item"><div class="dot"></div>Pack 8*9 → added as 17 (not multiplied)</div>
+          <div class="rule-item"><div class="dot"></div>Item per Pack → number extracted</div>
+          <div class="rule-item"><div class="dot"></div>HSN / Batch kept if provided, else blank</div>
+          <div class="rule-item"><div class="dot"></div>Empty rows removed</div>
+          <div class="rule-item"><div class="dot"></div>Output: 11 standard columns only</div>
+          <div class="rule-item"><div class="dot"></div>MRP, Cost, Discount, GST preserved</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Patient ID modal -->
+  <!-- Patient ID Modal -->
   <div class="modal-overlay" id="pidOverlay">
     <div class="modal">
       <div class="modal-title">Set Patient ID</div>
-      <div class="modal-sub">Enter the Patient ID or prefix you want to assign.<br>IDs will be generated as <strong id="previewText">PREFIX0001</strong>, <strong id="previewText2">PREFIX0002</strong>…</div>
-      <label class="modal-label" for="pidModalInput">Patient ID / Prefix <span style="font-weight:400;color:#94a3b8">(alphanumeric)</span></label>
-      <input type="text" id="pidModalInput" class="modal-input" placeholder="e.g. TTC, AIIMS, ABC123" maxlength="20" autocomplete="off" />
-      <div class="modal-hint" id="pidModalHint">Letters and numbers only, up to 20 characters.</div>
+      <div class="modal-sub">Enter the Patient ID prefix to assign.<br>IDs will be generated as <strong id="pidPreview1">P0001</strong>, <strong id="pidPreview2">P0002</strong>…</div>
+      <label class="modal-label" for="pidInput">Patient ID / Prefix <span style="font-weight:400;color:#94a3b8">(alphanumeric)</span></label>
+      <input type="text" id="pidInput" class="modal-input" placeholder="e.g. TTC, AIIMS, ABC123" maxlength="20" autocomplete="off" />
+      <div class="modal-hint" id="pidHint">Leave blank to generate as P0001, P0002…</div>
       <div class="modal-actions">
         <button class="modal-cancel" id="pidCancel">Cancel</button>
         <button class="modal-confirm" id="pidConfirm">Process &amp; Download</button>
@@ -343,174 +375,260 @@
     </div>
   </div>
 
+  <!-- Supplier Name Modal -->
+  <div class="modal-overlay" id="supplierOverlay">
+    <div class="modal">
+      <div class="modal-title">Enter Supplier Name</div>
+      <div class="modal-sub">This will be filled in the <strong>Supplier Name</strong> column for every row in the output.</div>
+      <label class="modal-label" for="supplierInput">Supplier Name <span style="font-weight:400;color:#c0392b">*required</span></label>
+      <input type="text" id="supplierInput" class="modal-input" placeholder="e.g. Medline, Apollo, Self" maxlength="100" autocomplete="off" style="text-transform:none" />
+      <div class="modal-hint" id="supplierHint">Enter the distributor or supplier name.</div>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="supplierCancel">Cancel</button>
+        <button class="modal-confirm" id="supplierConfirm" disabled>Process &amp; Download</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const dropZone    = document.getElementById('dropZone');
-    const fileInput   = document.getElementById('fileInput');
-    const fileChosen  = document.getElementById('fileChosen');
-    const fileNameLbl = document.getElementById('fileNameLabel');
-    const removeBtn   = document.getElementById('removeFile');
-    const cleanBtn    = document.getElementById('cleanBtn');
-    const spinner     = document.getElementById('spinner');
-    const btnText     = document.getElementById('btnText');
-    const statusBox   = document.getElementById('statusBox');
+    // ── Tab switching ──────────────────────────────────────────────────────────
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
 
-    const pidOverlay   = document.getElementById('pidOverlay');
-    const pidModalInput = document.getElementById('pidModalInput');
-    const pidModalHint  = document.getElementById('pidModalHint');
-    const pidCancel    = document.getElementById('pidCancel');
-    const pidConfirm   = document.getElementById('pidConfirm');
-    const previewText  = document.getElementById('previewText');
-    const previewText2 = document.getElementById('previewText2');
+    // ── Shared helpers ─────────────────────────────────────────────────────────
+    function makeDropZone(dropId, inputId, chosenId, nameId, removeId, btnId) {
+      const drop   = document.getElementById(dropId);
+      const input  = document.getElementById(inputId);
+      const chosen = document.getElementById(chosenId);
+      const nameEl = document.getElementById(nameId);
+      const remBtn = document.getElementById(removeId);
+      const btn    = document.getElementById(btnId);
+      let file = null;
 
-    let selectedFile = null;
-
-    function setFile(file) {
-      if (!file) return;
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (!['xlsx','xls','csv'].includes(ext)) {
-        showStatus('Unsupported file type. Please upload .xlsx, .xls or .csv.', 'error');
-        return;
+      function setFile(f) {
+        if (!f) return;
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (!['xlsx','xls','csv'].includes(ext)) {
+          alert('Unsupported file type. Please upload .xlsx, .xls or .csv.');
+          return;
+        }
+        file = f;
+        nameEl.textContent = f.name;
+        chosen.classList.add('show');
+        btn.disabled = false;
       }
-      selectedFile = file;
-      fileNameLbl.textContent = file.name;
-      fileChosen.classList.add('show');
-      cleanBtn.disabled = false;
-      clearStatus();
+
+      function clearFile() {
+        file = null;
+        input.value = '';
+        chosen.classList.remove('show');
+        btn.disabled = true;
+      }
+
+      input.addEventListener('change', () => { if (input.files.length) setFile(input.files[0]); });
+      remBtn.addEventListener('click', clearFile);
+      drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+      drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+      drop.addEventListener('drop', e => {
+        e.preventDefault(); drop.classList.remove('dragover');
+        if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+      });
+
+      return { getFile: () => file };
     }
 
-    function clearFile() {
-      selectedFile = null;
-      fileInput.value = '';
-      fileChosen.classList.remove('show');
-      cleanBtn.disabled = true;
-      clearStatus();
+    function showStatus(boxId, msg, type) {
+      const el = document.getElementById(boxId);
+      el.textContent = msg;
+      el.className = 'status ' + type;
     }
 
-    function showStatus(msg, type) {
-      statusBox.textContent = msg;
-      statusBox.className = 'status ' + type;
+    function clearStatus(boxId) {
+      const el = document.getElementById(boxId);
+      el.className = 'status'; el.textContent = '';
     }
 
-    function clearStatus() {
-      statusBox.className = 'status';
-      statusBox.textContent = '';
-    }
+    // ── Patient Data ───────────────────────────────────────────────────────────
+    const pZone = makeDropZone('pDrop','pFileInput','pFileChosen','pFileName','pRemove','pCleanBtn');
+    const pidOverlay = document.getElementById('pidOverlay');
+    const pidInput   = document.getElementById('pidInput');
+    const pidHint    = document.getElementById('pidHint');
+    const pidPreview1 = document.getElementById('pidPreview1');
+    const pidPreview2 = document.getElementById('pidPreview2');
+    const pidCancel  = document.getElementById('pidCancel');
+    const pidConfirm = document.getElementById('pidConfirm');
 
-    function openModal() {
-      pidModalInput.value = '';
-      pidModalHint.textContent = 'Letters and numbers only, up to 20 characters.';
-      pidModalHint.classList.remove('error');
-      pidModalInput.classList.remove('invalid');
-      previewText.textContent = 'PREFIX0001';
-      previewText2.textContent = 'PREFIX0002';
-      pidConfirm.disabled = false;
-      pidOverlay.classList.add('open');
-      setTimeout(() => pidModalInput.focus(), 80);
-    }
-
-    function closeModal() {
-      pidOverlay.classList.remove('open');
-    }
-
-    pidModalInput.addEventListener('input', () => {
-      const val = pidModalInput.value.toUpperCase();
-      if (val && !/^[A-Z0-9]+$/.test(val)) {
-        pidModalInput.classList.add('invalid');
-        pidModalHint.textContent = 'Only letters and numbers allowed — no spaces or special characters.';
-        pidModalHint.classList.add('error');
+    pidInput.addEventListener('input', () => {
+      const v = pidInput.value.toUpperCase();
+      if (v && !/^[A-Z0-9]+$/.test(v)) {
+        pidInput.classList.add('invalid');
+        pidHint.textContent = 'Only letters and numbers — no spaces or special characters.';
+        pidHint.classList.add('error');
         pidConfirm.disabled = true;
-        previewText.textContent = 'PREFIX0001';
-        previewText2.textContent = 'PREFIX0002';
       } else {
-        pidModalInput.classList.remove('invalid');
-        pidModalHint.classList.remove('error');
+        pidInput.classList.remove('invalid');
+        pidHint.classList.remove('error');
         pidConfirm.disabled = false;
-        if (val) {
-          previewText.textContent = val + '0001';
-          previewText2.textContent = val + '0002';
-          pidModalHint.textContent = `IDs will be: ${val}0001, ${val}0002, ${val}0003…`;
+        if (v) {
+          pidPreview1.textContent = v + '0001';
+          pidPreview2.textContent = v + '0002';
+          pidHint.textContent = `IDs will be: ${v}0001, ${v}0002, ${v}0003…`;
         } else {
-          previewText.textContent = 'P0001';
-          previewText2.textContent = 'P0002';
-          pidModalHint.textContent = 'Leave blank to auto-generate IDs as P0001, P0002…';
+          pidPreview1.textContent = 'P0001'; pidPreview2.textContent = 'P0002';
+          pidHint.textContent = 'Leave blank to generate as P0001, P0002…';
         }
       }
     });
 
-    pidModalInput.addEventListener('keydown', e => {
+    pidInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !pidConfirm.disabled) pidConfirm.click();
-      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Escape') closePidModal();
     });
 
-    pidCancel.addEventListener('click', closeModal);
+    function openPidModal() {
+      pidInput.value = ''; pidHint.textContent = 'Leave blank to generate as P0001, P0002…';
+      pidHint.classList.remove('error'); pidInput.classList.remove('invalid');
+      pidPreview1.textContent = 'P0001'; pidPreview2.textContent = 'P0002';
+      pidConfirm.disabled = false;
+      pidOverlay.classList.add('open');
+      setTimeout(() => pidInput.focus(), 80);
+    }
 
-    pidOverlay.addEventListener('click', e => {
-      if (e.target === pidOverlay) closeModal();
+    function closePidModal() { pidOverlay.classList.remove('open'); }
+
+    pidCancel.addEventListener('click', closePidModal);
+    pidOverlay.addEventListener('click', e => { if (e.target === pidOverlay) closePidModal(); });
+
+    document.getElementById('pCleanBtn').addEventListener('click', () => {
+      if (!pZone.getFile()) return;
+      openPidModal();
     });
 
     pidConfirm.addEventListener('click', () => {
-      const prefix = pidModalInput.value.trim().toUpperCase();
+      const prefix = pidInput.value.trim().toUpperCase();
       if (prefix && !/^[A-Z0-9]+$/.test(prefix)) return;
-      closeModal();
-      uploadAndClean(prefix);
+      closePidModal();
+      runPatientClean(prefix);
     });
 
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files.length) setFile(fileInput.files[0]);
-    });
+    async function runPatientClean(prefix) {
+      const file = pZone.getFile();
+      if (!file) return;
+      const btn = document.getElementById('pCleanBtn');
+      const spinner = document.getElementById('pSpinner');
+      const btnText = document.getElementById('pBtnText');
+      btn.disabled = true; spinner.style.display = 'block'; btnText.textContent = 'Processing…';
+      showStatus('pStatus', 'Uploading and cleaning your file…', 'info');
 
-    removeBtn.addEventListener('click', clearFile);
-
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-      if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
-    });
-
-    cleanBtn.addEventListener('click', () => {
-      if (!selectedFile) return;
-      openModal();
-    });
-
-    async function uploadAndClean(prefix) {
-      cleanBtn.disabled = true;
-      spinner.style.display = 'block';
-      btnText.textContent = 'Processing…';
-      clearStatus();
-
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      if (prefix) formData.append('patient_id_prefix', prefix);
+      const fd = new FormData();
+      fd.append('file', file);
+      if (prefix) fd.append('patient_id_prefix', prefix);
 
       try {
-        showStatus('Uploading and cleaning your file…', 'info');
-        const resp = await fetch('/clean', { method: 'POST', body: formData });
-
+        const resp = await fetch('/clean', { method: 'POST', body: fd });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({ error: 'Unexpected server error.' }));
-          showStatus('Error: ' + err.error, 'error');
-          return;
+          showStatus('pStatus', 'Error: ' + err.error, 'error'); return;
         }
-
         const blob = await resp.blob();
-        const disposition = resp.headers.get('Content-Disposition') || '';
-        const match = disposition.match(/filename="?([^"]+)"?/);
-        const outName = match ? match[1] : 'Cleaned_output.xlsx';
-
+        const disp = resp.headers.get('Content-Disposition') || '';
+        const m = disp.match(/filename="?([^"]+)"?/);
+        const outName = m ? m[1] : 'Cleaned_output.xlsx';
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = outName; a.click();
+        const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
         URL.revokeObjectURL(url);
-
-        showStatus(`Done! "${outName}" has been downloaded.`, 'success');
+        showStatus('pStatus', `Done! "${outName}" has been downloaded.`, 'success');
       } catch (e) {
-        showStatus('Network error: ' + e.message, 'error');
+        showStatus('pStatus', 'Network error: ' + e.message, 'error');
       } finally {
-        cleanBtn.disabled = false;
-        spinner.style.display = 'none';
-        btnText.textContent = 'Clean & Download';
+        btn.disabled = false; spinner.style.display = 'none'; btnText.textContent = 'Clean & Download';
+      }
+    }
+
+    // ── Pharmacy Data ──────────────────────────────────────────────────────────
+    const rxZone = makeDropZone('rxDrop','rxFileInput','rxFileChosen','rxFileName','rxRemove','rxCleanBtn');
+    const supplierOverlay = document.getElementById('supplierOverlay');
+    const supplierInput   = document.getElementById('supplierInput');
+    const supplierHint    = document.getElementById('supplierHint');
+    const supplierCancel  = document.getElementById('supplierCancel');
+    const supplierConfirm = document.getElementById('supplierConfirm');
+
+    supplierInput.addEventListener('input', () => {
+      const v = supplierInput.value.trim();
+      supplierConfirm.disabled = !v;
+      supplierHint.textContent = v ? `Supplier "${v}" will be added to all rows.` : 'Enter the distributor or supplier name.';
+      supplierHint.classList.remove('error');
+    });
+
+    supplierInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !supplierConfirm.disabled) supplierConfirm.click();
+      if (e.key === 'Escape') closeSupplierModal();
+    });
+
+    function openSupplierModal() {
+      supplierInput.value = '';
+      supplierConfirm.disabled = true;
+      supplierHint.textContent = 'Enter the distributor or supplier name.';
+      supplierHint.classList.remove('error');
+      supplierInput.classList.remove('invalid');
+      supplierOverlay.classList.add('open');
+      setTimeout(() => supplierInput.focus(), 80);
+    }
+
+    function closeSupplierModal() { supplierOverlay.classList.remove('open'); }
+
+    supplierCancel.addEventListener('click', closeSupplierModal);
+    supplierOverlay.addEventListener('click', e => { if (e.target === supplierOverlay) closeSupplierModal(); });
+
+    document.getElementById('rxCleanBtn').addEventListener('click', () => {
+      if (!rxZone.getFile()) return;
+      openSupplierModal();
+    });
+
+    supplierConfirm.addEventListener('click', () => {
+      const name = supplierInput.value.trim();
+      if (!name) return;
+      closeSupplierModal();
+      runPharmacyClean(name);
+    });
+
+    async function runPharmacyClean(supplierName) {
+      const file = rxZone.getFile();
+      if (!file) return;
+      const btn = document.getElementById('rxCleanBtn');
+      const spinner = document.getElementById('rxSpinner');
+      const btnText = document.getElementById('rxBtnText');
+      btn.disabled = true; spinner.style.display = 'block'; btnText.textContent = 'Processing…';
+      showStatus('rxStatus', 'Uploading and processing pharmacy file…', 'info');
+
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('supplier_name', supplierName);
+
+      try {
+        const resp = await fetch('/clean-pharmacy', { method: 'POST', body: fd });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ error: 'Unexpected server error.' }));
+          showStatus('rxStatus', 'Error: ' + err.error, 'error'); return;
+        }
+        const blob = await resp.blob();
+        const disp = resp.headers.get('Content-Disposition') || '';
+        const m = disp.match(/filename="?([^"]+)"?/);
+        const outName = m ? m[1] : 'Pharmacy_output.xlsx';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
+        URL.revokeObjectURL(url);
+        showStatus('rxStatus', `Done! "${outName}" has been downloaded.`, 'success');
+      } catch (e) {
+        showStatus('rxStatus', 'Network error: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false; spinner.style.display = 'none'; btnText.textContent = 'Clean & Download';
       }
     }
   </script>

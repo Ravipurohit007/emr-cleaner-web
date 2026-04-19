@@ -347,6 +347,172 @@ def write_excel(all_dfs, all_stats, original_name, patient_id_prefix=''):
     return buf
 
 
+# ── Pharmacy: Expiry Date Cleaning ───────────────────────────────────────────
+
+def clean_exp_date(val):
+    if pd.isna(val) or str(val).strip() == '':
+        return ''
+    s = str(val).strip()
+    if re.match(r'^[A-Za-z]{3}-\d{4}$', s):
+        return s
+    formats = [
+        '%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y',
+        '%m/%d/%Y', '%d.%m.%Y', '%Y/%m/%d', '%d-%b-%Y', '%d %b %Y',
+        '%B %d, %Y', '%d/%m/%y', '%d-%m-%y', '%m-%Y', '%m/%Y',
+        '%b-%Y', '%b %Y',
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(s, fmt).strftime('%b-%Y')
+        except ValueError:
+            continue
+    try:
+        return pd.to_datetime(s, dayfirst=True).strftime('%b-%Y')
+    except Exception:
+        return s
+
+
+# ── Pharmacy: Pack / Free Pack Parsing ───────────────────────────────────────
+
+def parse_pack(val):
+    if pd.isna(val) or str(val).strip() == '':
+        return ''
+    s = str(val).strip()
+    m = re.match(r'^(\d+)\s*\*\s*(\d+)$', s)
+    if m:
+        return str(int(m.group(1)) + int(m.group(2)))
+    m2 = re.match(r'^(\d+)', s)
+    if m2:
+        return m2.group(1)
+    return s
+
+
+# ── Pharmacy: Item per Pack Parsing ──────────────────────────────────────────
+
+def parse_item_per_pack(val):
+    if pd.isna(val) or str(val).strip() == '':
+        return ''
+    s = str(val).strip()
+    m = re.match(r'^(\d+)', s)
+    return m.group(1) if m else s
+
+
+# ── Pharmacy: Core Processing ─────────────────────────────────────────────────
+
+PHARMACY_OUT_COLS = [
+    'Supplier Name *', 'Medicine Name*', 'HSN No.', 'Batch No. *',
+    'Exp. Date*', 'Pack* & Free Pack', 'Item per Pack',
+    'MRP*', 'Pure Cost*', 'Discount *', 'GST No.*',
+]
+
+def process_pharmacy_dataframe(df, sheet_name='Sheet1', supplier_name=''):
+    stats = {'sheet': sheet_name, 'input_rows': len(df), 'output_rows': 0, 'empty_rows_removed': 0}
+
+    df.columns = [str(c).strip() if not pd.isna(c) else f'_col_{i}' for i, c in enumerate(df.columns)]
+    df = df.loc[:, ~df.columns.str.match(r'^(Unnamed:|_col_\d+)')]
+
+    before = len(df)
+    df = df.dropna(how='all')
+    df = df[df.apply(lambda r: r.astype(str).str.strip().ne('').any(), axis=1)]
+    stats['empty_rows_removed'] = before - len(df)
+
+    if df.empty:
+        return pd.DataFrame(columns=PHARMACY_OUT_COLS), stats
+
+    cols = list(df.columns)
+
+    med_col      = detect_column(cols, ['medicinename', 'medicine', 'drugname', 'drug', 'itemname', 'item', 'productname', 'name'])
+    hsn_col      = detect_column(cols, ['hsn', 'hsncode', 'hsnno'])
+    batch_col    = detect_column(cols, ['batch', 'batchno', 'batchnumber', 'lot', 'lotno'])
+    exp_col      = detect_column(cols, ['exp', 'expiry', 'expirydate', 'expdate', 'expdt'])
+    pack_col     = detect_column(cols, ['pack', 'qty', 'quantity', 'stock', 'freepack', 'total'])
+    ipack_col    = detect_column(cols, ['packing', 'itemperpack', 'perpack', 'packsize', 'unitpack'])
+    mrp_col      = detect_column(cols, ['mrp', 'maxretail', 'retailprice', 'listprice'])
+    cost_col     = detect_column(cols, ['purecost', 'cost', 'rate', 'purchaserate', 'purchaseprice', 'price'])
+    disc_col     = detect_column(cols, ['discount', 'disc', 'discper'])
+    gst_col      = detect_column(cols, ['gst', 'gstnumber', 'gstno', 'gstin', 'tax'])
+
+    out = pd.DataFrame(index=range(len(df)))
+    out['Supplier Name *']  = supplier_name
+    out['Medicine Name*']   = df[med_col].apply(lambda v: str(v).strip().upper() if not pd.isna(v) and str(v).strip() else '') if med_col else ''
+    out['HSN No.']          = df[hsn_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if hsn_col else ''
+    out['Batch No. *']      = df[batch_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if batch_col else ''
+    out['Exp. Date*']       = df[exp_col].apply(clean_exp_date) if exp_col else ''
+    out['Pack* & Free Pack']= df[pack_col].apply(parse_pack) if pack_col else ''
+    out['Item per Pack']    = df[ipack_col].apply(parse_item_per_pack) if ipack_col else ''
+    out['MRP*']             = df[mrp_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if mrp_col else ''
+    out['Pure Cost*']       = df[cost_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if cost_col else ''
+    out['Discount *']       = df[disc_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if disc_col else ''
+    out['GST No.*']         = df[gst_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if gst_col else ''
+
+    out = out[out['Medicine Name*'].str.strip().ne('')]
+    out = out.reset_index(drop=True)
+    stats['output_rows'] = len(out)
+    return out, stats
+
+
+# ── Pharmacy: Excel Writer ────────────────────────────────────────────────────
+
+def write_pharmacy_excel(all_dfs, all_stats, original_name, supplier_name=''):
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    ws = wb.create_sheet('Pharmacy Data')
+    combined = pd.concat(all_dfs, ignore_index=True) if all_dfs else pd.DataFrame(columns=PHARMACY_OUT_COLS)
+
+    headers = PHARMACY_OUT_COLS
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.fill = PatternFill(fill_type='solid', fgColor='1F4E79')
+        cell.font = Font(name='Arial', size=10, bold=True, color='FFFFFF')
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    for i, row_data in enumerate(combined[headers].itertuples(index=False), start=2):
+        ws.append(list(row_data))
+        fill = PatternFill(fill_type='solid', fgColor='DCE6F1') if i % 2 == 0 else PatternFill()
+        for cell in ws[i]:
+            cell.font = Font(name='Arial', size=10)
+            cell.fill = fill
+            cell.alignment = Alignment(vertical='center')
+
+    if not combined.empty:
+        ws.auto_filter.ref = ws.dimensions
+        ws.freeze_panes = 'A2'
+        for col_idx, col_name in enumerate(headers, 1):
+            max_len = max(len(str(col_name)), combined[col_name].astype(str).str.len().max() if col_name in combined.columns else 0)
+            ws.column_dimensions[get_column_letter(col_idx)].width = min(max_len + 4, 40)
+
+    ws2 = wb.create_sheet('Summary Report')
+    ws2.column_dimensions['A'].width = 36
+    ws2.column_dimensions['B'].width = 20
+
+    ws2.append(['Pharmacy Data Migration Report'])
+    ws2[ws2.max_row][0].font = Font(name='Arial', size=14, bold=True, color='1F4E79')
+    ws2.append([f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'])
+    ws2.append([f'Source file: {original_name}'])
+    ws2.append([f'Supplier Name: {supplier_name}'])
+    ws2.append([])
+
+    total_in  = sum(s['input_rows'] for s in all_stats)
+    total_out = sum(s['output_rows'] for s in all_stats)
+    empty_rem = sum(s['empty_rows_removed'] for s in all_stats)
+
+    def srow(label, value):
+        ws2.append([label, value])
+        for cell in ws2[ws2.max_row]:
+            cell.font = Font(name='Arial', size=10)
+            cell.border = THIN_BORDER
+
+    srow('Total records received', total_in)
+    srow('Empty rows removed', empty_rem)
+    srow('Total medicines in output', total_out)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.errorhandler(Exception)
@@ -422,6 +588,69 @@ def clean():
     base_name = filename.rsplit('.', 1)[0]
     out_name = f'Cleaned_{base_name}.xlsx'
     buf = write_excel(all_dfs, all_stats, filename, patient_id_prefix=patient_id_prefix)
+
+    return send_file(
+        buf,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=out_name
+    )
+
+
+@app.route('/clean-pharmacy', methods=['POST'])
+def clean_pharmacy():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+
+    f = request.files['file']
+    if not f.filename or not allowed_file(f.filename):
+        return jsonify({'error': 'Unsupported file type. Upload .xlsx, .xls or .csv'}), 400
+
+    supplier_name = request.form.get('supplier_name', '').strip()
+    if not supplier_name:
+        return jsonify({'error': 'Supplier name is required.'}), 400
+
+    filename = secure_filename(f.filename)
+    ext = filename.rsplit('.', 1)[1].lower()
+
+    try:
+        if ext == 'csv':
+            raw = f.read()
+            for enc in ('utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1'):
+                try:
+                    df = pd.read_csv(io.BytesIO(raw), dtype=str, keep_default_na=False, encoding=enc)
+                    break
+                except Exception:
+                    continue
+            else:
+                return jsonify({'error': 'Could not decode CSV. Try saving as UTF-8 from Excel.'}), 400
+            df = df.replace('', pd.NA)
+            sheets = {'Sheet1': df}
+        else:
+            xl = pd.ExcelFile(f)
+            sheets = {sn: xl.parse(sn, dtype=str).replace('', pd.NA) for sn in xl.sheet_names}
+    except Exception as e:
+        return jsonify({'error': f'Could not read file: {str(e)}'}), 400
+
+    all_dfs, all_stats = [], []
+    try:
+        for sn, df in sheets.items():
+            if df.empty:
+                continue
+            cleaned_df, stats = process_pharmacy_dataframe(df, sheet_name=sn, supplier_name=supplier_name)
+            if not cleaned_df.empty:
+                all_dfs.append(cleaned_df)
+            all_stats.append(stats)
+    except Exception:
+        import traceback
+        return jsonify({'error': f'Processing error: {traceback.format_exc()}'}), 500
+
+    if not all_dfs:
+        return jsonify({'error': 'No medicine data found in the file.'}), 400
+
+    base_name = filename.rsplit('.', 1)[0]
+    out_name = f'Pharmacy_{base_name}.xlsx'
+    buf = write_pharmacy_excel(all_dfs, all_stats, filename, supplier_name=supplier_name)
 
     return send_file(
         buf,
