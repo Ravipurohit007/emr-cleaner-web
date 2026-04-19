@@ -54,7 +54,6 @@
       margin-top: 4px;
     }
 
-    /* Drop zone */
     .drop-zone {
       border: 2px dashed #a8c4e0;
       border-radius: 12px;
@@ -76,7 +75,6 @@
     }
 
     .drop-icon { font-size: 40px; margin-bottom: 12px; }
-
     .drop-text { color: #334155; font-size: 15px; font-weight: 500; }
     .drop-sub  { color: #94a3b8; font-size: 13px; margin-top: 6px; }
 
@@ -116,7 +114,6 @@
     .btn:active:not(:disabled) { transform: scale(0.99); }
     .btn:disabled { opacity: .6; cursor: not-allowed; }
 
-    /* Spinner */
     .spinner {
       display: none;
       width: 18px; height: 18px;
@@ -127,7 +124,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Status */
     .status {
       margin-top: 18px;
       border-radius: 10px;
@@ -140,7 +136,6 @@
     .status.success { background: #f0fff4; color: #1a7a42; border: 1px solid #9be9b0; display: block; }
     .status.info    { background: #f0f8ff; color: #1F4E79;  border: 1px solid #a8c4e0; display: block; }
 
-    /* Rules summary */
     .rules {
       margin-top: 32px;
       border-top: 1px solid #e2e8f0;
@@ -172,6 +167,122 @@
       background: #1F4E79;
       margin-top: 4px; flex-shrink: 0;
     }
+
+    /* Modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 30, 50, 0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(31,78,121,.22);
+      padding: 36px 32px 28px;
+      max-width: 420px;
+      width: 100%;
+      animation: pop .18s ease;
+    }
+
+    @keyframes pop {
+      from { transform: scale(.94); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1F4E79;
+      margin-bottom: 6px;
+    }
+
+    .modal-sub {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+
+    .modal-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 7px;
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #a8c4e0;
+      border-radius: 8px;
+      font-size: 15px;
+      color: #1F4E79;
+      background: #f8fbff;
+      outline: none;
+      transition: border-color .2s;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      letter-spacing: .05em;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .modal-input:focus { border-color: #1F4E79; background: #fff; }
+    .modal-input.invalid { border-color: #e53e3e; background: #fff5f5; }
+
+    .modal-hint {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 6px;
+      min-height: 16px;
+    }
+
+    .modal-hint.error { color: #c0392b; }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .modal-cancel {
+      flex: 1;
+      padding: 11px;
+      background: #f1f5f9;
+      color: #475569;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .modal-cancel:hover { background: #e2e8f0; }
+
+    .modal-confirm {
+      flex: 2;
+      padding: 11px;
+      background: #1F4E79;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .modal-confirm:hover { background: #163d61; }
+    .modal-confirm:disabled { opacity: .5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -217,6 +328,21 @@
     </div>
   </div>
 
+  <!-- Patient ID modal -->
+  <div class="modal-overlay" id="pidOverlay">
+    <div class="modal">
+      <div class="modal-title">Set Patient ID</div>
+      <div class="modal-sub">Enter the Patient ID or prefix you want to assign.<br>IDs will be generated as <strong id="previewText">PREFIX0001</strong>, <strong id="previewText2">PREFIX0002</strong>…</div>
+      <label class="modal-label" for="pidModalInput">Patient ID / Prefix <span style="font-weight:400;color:#94a3b8">(alphanumeric)</span></label>
+      <input type="text" id="pidModalInput" class="modal-input" placeholder="e.g. TTC, AIIMS, ABC123" maxlength="20" autocomplete="off" />
+      <div class="modal-hint" id="pidModalHint">Letters and numbers only, up to 20 characters.</div>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="pidCancel">Cancel</button>
+        <button class="modal-confirm" id="pidConfirm">Process &amp; Download</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const dropZone    = document.getElementById('dropZone');
     const fileInput   = document.getElementById('fileInput');
@@ -227,6 +353,14 @@
     const spinner     = document.getElementById('spinner');
     const btnText     = document.getElementById('btnText');
     const statusBox   = document.getElementById('statusBox');
+
+    const pidOverlay   = document.getElementById('pidOverlay');
+    const pidModalInput = document.getElementById('pidModalInput');
+    const pidModalHint  = document.getElementById('pidModalHint');
+    const pidCancel    = document.getElementById('pidCancel');
+    const pidConfirm   = document.getElementById('pidConfirm');
+    const previewText  = document.getElementById('previewText');
+    const previewText2 = document.getElementById('previewText2');
 
     let selectedFile = null;
 
@@ -262,6 +396,65 @@
       statusBox.textContent = '';
     }
 
+    function openModal() {
+      pidModalInput.value = '';
+      pidModalHint.textContent = 'Letters and numbers only, up to 20 characters.';
+      pidModalHint.classList.remove('error');
+      pidModalInput.classList.remove('invalid');
+      previewText.textContent = 'PREFIX0001';
+      previewText2.textContent = 'PREFIX0002';
+      pidConfirm.disabled = false;
+      pidOverlay.classList.add('open');
+      setTimeout(() => pidModalInput.focus(), 80);
+    }
+
+    function closeModal() {
+      pidOverlay.classList.remove('open');
+    }
+
+    pidModalInput.addEventListener('input', () => {
+      const val = pidModalInput.value.toUpperCase();
+      if (val && !/^[A-Z0-9]+$/.test(val)) {
+        pidModalInput.classList.add('invalid');
+        pidModalHint.textContent = 'Only letters and numbers allowed — no spaces or special characters.';
+        pidModalHint.classList.add('error');
+        pidConfirm.disabled = true;
+        previewText.textContent = 'PREFIX0001';
+        previewText2.textContent = 'PREFIX0002';
+      } else {
+        pidModalInput.classList.remove('invalid');
+        pidModalHint.classList.remove('error');
+        pidConfirm.disabled = false;
+        if (val) {
+          previewText.textContent = val + '0001';
+          previewText2.textContent = val + '0002';
+          pidModalHint.textContent = `IDs will be: ${val}0001, ${val}0002, ${val}0003…`;
+        } else {
+          previewText.textContent = 'P0001';
+          previewText2.textContent = 'P0002';
+          pidModalHint.textContent = 'Leave blank to auto-generate IDs as P0001, P0002…';
+        }
+      }
+    });
+
+    pidModalInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !pidConfirm.disabled) pidConfirm.click();
+      if (e.key === 'Escape') closeModal();
+    });
+
+    pidCancel.addEventListener('click', closeModal);
+
+    pidOverlay.addEventListener('click', e => {
+      if (e.target === pidOverlay) closeModal();
+    });
+
+    pidConfirm.addEventListener('click', () => {
+      const prefix = pidModalInput.value.trim().toUpperCase();
+      if (prefix && !/^[A-Z0-9]+$/.test(prefix)) return;
+      closeModal();
+      uploadAndClean(prefix);
+    });
+
     fileInput.addEventListener('change', () => {
       if (fileInput.files.length) setFile(fileInput.files[0]);
     });
@@ -276,9 +469,12 @@
       if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
     });
 
-    cleanBtn.addEventListener('click', async () => {
+    cleanBtn.addEventListener('click', () => {
       if (!selectedFile) return;
+      openModal();
+    });
 
+    async function uploadAndClean(prefix) {
       cleanBtn.disabled = true;
       spinner.style.display = 'block';
       btnText.textContent = 'Processing…';
@@ -286,6 +482,7 @@
 
       const formData = new FormData();
       formData.append('file', selectedFile);
+      if (prefix) formData.append('patient_id_prefix', prefix);
 
       try {
         showStatus('Uploading and cleaning your file…', 'info');
@@ -315,7 +512,7 @@
         spinner.style.display = 'none';
         btnText.textContent = 'Clean & Download';
       }
-    });
+    }
   </script>
 </body>
 </html>

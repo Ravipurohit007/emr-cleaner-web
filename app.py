@@ -113,7 +113,7 @@ def detect_column(columns, keywords):
 
 # ── Core Cleaning Logic ───────────────────────────────────────────────────────
 
-def process_dataframe(df, sheet_name='Sheet1'):
+def process_dataframe(df, sheet_name='Sheet1', patient_id_prefix='P'):
     stats = {
         'sheet': sheet_name,
         'input_rows': len(df),
@@ -209,7 +209,8 @@ def process_dataframe(df, sheet_name='Sheet1'):
         )
         stats['malformed_ids'] = int(malformed.sum())
     else:
-        df['Patient ID'] = [f'P{str(i+1).zfill(4)}' for i in range(len(df))]
+        prefix = patient_id_prefix if patient_id_prefix else 'P'
+        df['Patient ID'] = [f'{prefix}{str(i+1).zfill(4)}' for i in range(len(df))]
 
     # ── Duplicate removal (name + mobile both match) ──
     df['_name_key'] = df['Patient Name'].str.lower().str.strip()
@@ -247,7 +248,7 @@ THIN_BORDER   = Border(
     top=Side(style='thin'), bottom=Side(style='thin')
 )
 
-def write_excel(all_dfs, all_stats, original_name):
+def write_excel(all_dfs, all_stats, original_name, patient_id_prefix=''):
     wb = Workbook()
     wb.remove(wb.active)
 
@@ -311,6 +312,8 @@ def write_excel(all_dfs, all_stats, original_name):
     ws2[ws2.max_row][0].font = Font(name='Arial', size=14, bold=True, color='1F4E79')
     ws2.append([f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'])
     ws2.append([f'Source file: {original_name}'])
+    if patient_id_prefix:
+        ws2.append([f'Patient ID Prefix used: {patient_id_prefix}'])
     ws2.append([])
 
     section('Input Data')
@@ -366,6 +369,12 @@ def clean():
     if not f.filename or not allowed_file(f.filename):
         return jsonify({'error': 'Unsupported file type. Upload .xlsx, .xls or .csv'}), 400
 
+    patient_id_prefix = request.form.get('patient_id_prefix', '').strip().upper()
+    if patient_id_prefix and not re.match(r'^[A-Z0-9]+$', patient_id_prefix):
+        return jsonify({'error': 'Patient ID Prefix must be alphanumeric only.'}), 400
+    if len(patient_id_prefix) > 20:
+        return jsonify({'error': 'Patient ID Prefix must be 20 characters or fewer.'}), 400
+
     filename = secure_filename(f.filename)
     ext = filename.rsplit('.', 1)[1].lower()
 
@@ -399,7 +408,7 @@ def clean():
         for sn, df in sheets.items():
             if df.empty:
                 continue
-            cleaned_df, stats = process_dataframe(df, sheet_name=sn)
+            cleaned_df, stats = process_dataframe(df, sheet_name=sn, patient_id_prefix=patient_id_prefix)
             if not cleaned_df.empty:
                 all_dfs.append(cleaned_df)
             all_stats.append(stats)
@@ -412,7 +421,7 @@ def clean():
 
     base_name = filename.rsplit('.', 1)[0]
     out_name = f'Cleaned_{base_name}.xlsx'
-    buf = write_excel(all_dfs, all_stats, filename)
+    buf = write_excel(all_dfs, all_stats, filename, patient_id_prefix=patient_id_prefix)
 
     return send_file(
         buf,
