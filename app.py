@@ -103,7 +103,7 @@ def clean_single_name(val):
 
 def detect_column(columns, keywords):
     """Find the first column name that contains any of the given keywords."""
-    cols_lower = {c: c.lower().replace(' ', '').replace('_', '') for c in columns}
+    cols_lower = {c: re.sub(r'[\s_\n\r\*\.\,\(\)]', '', c.lower()) for c in columns}
     for col, col_norm in cols_lower.items():
         for kw in keywords:
             if kw in col_norm:
@@ -421,7 +421,7 @@ def process_pharmacy_dataframe(df, sheet_name='Sheet1', supplier_name=''):
 
     cols = list(df.columns)
 
-    med_col      = detect_column(cols, ['medicinename', 'medicine', 'drugname', 'drug', 'itemname', 'item', 'productname', 'name'])
+    med_col      = detect_column(cols, ['medicinename', 'medicine', 'drugname', 'drug', 'itemname', 'productname'])
     hsn_col      = detect_column(cols, ['hsn', 'hsncode', 'hsnno'])
     batch_col    = detect_column(cols, ['batch', 'batchno', 'batchnumber', 'lot', 'lotno'])
     exp_col      = detect_column(cols, ['exp', 'expiry', 'expirydate', 'expdate', 'expdt'])
@@ -429,7 +429,7 @@ def process_pharmacy_dataframe(df, sheet_name='Sheet1', supplier_name=''):
     ipack_col    = detect_column(cols, ['packing', 'itemperpack', 'perpack', 'packsize', 'unitpack'])
     mrp_col      = detect_column(cols, ['mrp', 'maxretail', 'retailprice', 'listprice'])
     cost_col     = detect_column(cols, ['purecost', 'cost', 'rate', 'purchaserate', 'purchaseprice', 'price'])
-    disc_col     = detect_column(cols, ['discount', 'disc', 'discper'])
+    disc_col     = detect_column(cols, ['discount', 'disc', 'dis'])
     gst_col      = detect_column(cols, ['gst', 'gstnumber', 'gstno', 'gstin', 'tax'])
 
     out = pd.DataFrame(index=range(len(df)))
