@@ -360,21 +360,6 @@
     </div>
   </div>
 
-  <!-- Patient ID Modal -->
-  <div class="modal-overlay" id="pidOverlay">
-    <div class="modal">
-      <div class="modal-title">Set Patient ID</div>
-      <div class="modal-sub">Enter the Patient ID prefix to assign.<br>IDs will be generated as <strong id="pidPreview1">P0001</strong>, <strong id="pidPreview2">P0002</strong>…</div>
-      <label class="modal-label" for="pidInput">Patient ID / Prefix <span style="font-weight:400;color:#94a3b8">(alphanumeric)</span></label>
-      <input type="text" id="pidInput" class="modal-input" placeholder="e.g. TTC, AIIMS, ABC123" maxlength="20" autocomplete="off" />
-      <div class="modal-hint" id="pidHint">Leave blank to generate as P0001, P0002…</div>
-      <div class="modal-actions">
-        <button class="modal-cancel" id="pidCancel">Cancel</button>
-        <button class="modal-confirm" id="pidConfirm">Process &amp; Download</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Supplier Name Modal -->
   <div class="modal-overlay" id="supplierOverlay">
     <div class="modal">
@@ -457,67 +442,12 @@
     // ── Patient Data ───────────────────────────────────────────────────────────
     const pZone = makeDropZone('pDrop','pFileInput','pFileChosen','pFileName','pRemove','pCleanBtn');
     const pidOverlay = document.getElementById('pidOverlay');
-    const pidInput   = document.getElementById('pidInput');
-    const pidHint    = document.getElementById('pidHint');
-    const pidPreview1 = document.getElementById('pidPreview1');
-    const pidPreview2 = document.getElementById('pidPreview2');
-    const pidCancel  = document.getElementById('pidCancel');
-    const pidConfirm = document.getElementById('pidConfirm');
-
-    pidInput.addEventListener('input', () => {
-      const v = pidInput.value.toUpperCase();
-      if (v && !/^[A-Z0-9]+$/.test(v)) {
-        pidInput.classList.add('invalid');
-        pidHint.textContent = 'Only letters and numbers — no spaces or special characters.';
-        pidHint.classList.add('error');
-        pidConfirm.disabled = true;
-      } else {
-        pidInput.classList.remove('invalid');
-        pidHint.classList.remove('error');
-        pidConfirm.disabled = false;
-        if (v) {
-          pidPreview1.textContent = v + '0001';
-          pidPreview2.textContent = v + '0002';
-          pidHint.textContent = `IDs will be: ${v}0001, ${v}0002, ${v}0003…`;
-        } else {
-          pidPreview1.textContent = 'P0001'; pidPreview2.textContent = 'P0002';
-          pidHint.textContent = 'Leave blank to generate as P0001, P0002…';
-        }
-      }
-    });
-
-    pidInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !pidConfirm.disabled) pidConfirm.click();
-      if (e.key === 'Escape') closePidModal();
-    });
-
-    function openPidModal() {
-      pidInput.value = ''; pidHint.textContent = 'Leave blank to generate as P0001, P0002…';
-      pidHint.classList.remove('error'); pidInput.classList.remove('invalid');
-      pidPreview1.textContent = 'P0001'; pidPreview2.textContent = 'P0002';
-      pidConfirm.disabled = false;
-      pidOverlay.classList.add('open');
-      setTimeout(() => pidInput.focus(), 80);
-    }
-
-    function closePidModal() { pidOverlay.classList.remove('open'); }
-
-    pidCancel.addEventListener('click', closePidModal);
-    pidOverlay.addEventListener('click', e => { if (e.target === pidOverlay) closePidModal(); });
-
     document.getElementById('pCleanBtn').addEventListener('click', () => {
       if (!pZone.getFile()) return;
-      openPidModal();
+      runPatientClean();
     });
 
-    pidConfirm.addEventListener('click', () => {
-      const prefix = pidInput.value.trim().toUpperCase();
-      if (prefix && !/^[A-Z0-9]+$/.test(prefix)) return;
-      closePidModal();
-      runPatientClean(prefix);
-    });
-
-    async function runPatientClean(prefix) {
+    async function runPatientClean() {
       const file = pZone.getFile();
       if (!file) return;
       const btn = document.getElementById('pCleanBtn');
@@ -528,7 +458,6 @@
 
       const fd = new FormData();
       fd.append('file', file);
-      if (prefix) fd.append('patient_id_prefix', prefix);
 
       try {
         const resp = await fetch('/clean', { method: 'POST', body: fd });

@@ -113,7 +113,7 @@ def detect_column(columns, keywords):
 
 # ── Core Cleaning Logic ───────────────────────────────────────────────────────
 
-def process_dataframe(df, sheet_name='Sheet1', patient_id_prefix='P'):
+def process_dataframe(df, sheet_name='Sheet1'):
     stats = {
         'sheet': sheet_name,
         'input_rows': len(df),
@@ -209,8 +209,7 @@ def process_dataframe(df, sheet_name='Sheet1', patient_id_prefix='P'):
         )
         stats['malformed_ids'] = int(malformed.sum())
     else:
-        prefix = patient_id_prefix if patient_id_prefix else 'P'
-        df['Patient ID'] = [f'{prefix}{str(i+1).zfill(4)}' for i in range(len(df))]
+        df['Patient ID'] = [f'P{str(i+1).zfill(4)}' for i in range(len(df))]
 
     # ── Duplicate removal (name + mobile both match) ──
     df['_name_key'] = df['Patient Name'].str.lower().str.strip()
@@ -248,7 +247,7 @@ THIN_BORDER   = Border(
     top=Side(style='thin'), bottom=Side(style='thin')
 )
 
-def write_excel(all_dfs, all_stats, original_name, patient_id_prefix=''):
+def write_excel(all_dfs, all_stats, original_name):
     wb = Workbook()
     wb.remove(wb.active)
 
@@ -312,8 +311,6 @@ def write_excel(all_dfs, all_stats, original_name, patient_id_prefix=''):
     ws2[ws2.max_row][0].font = Font(name='Arial', size=14, bold=True, color='1F4E79')
     ws2.append([f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'])
     ws2.append([f'Source file: {original_name}'])
-    if patient_id_prefix:
-        ws2.append([f'Patient ID Prefix used: {patient_id_prefix}'])
     ws2.append([])
 
     section('Input Data')
@@ -353,21 +350,19 @@ def clean_exp_date(val):
     if pd.isna(val) or str(val).strip() == '':
         return ''
     s = str(val).strip()
-    if re.match(r'^[A-Za-z]{3}-\d{4}$', s):
-        return s
     formats = [
         '%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y',
         '%m/%d/%Y', '%d.%m.%Y', '%Y/%m/%d', '%d-%b-%Y', '%d %b %Y',
         '%B %d, %Y', '%d/%m/%y', '%d-%m-%y', '%m-%Y', '%m/%Y',
-        '%b-%Y', '%b %Y',
+        '%b-%Y', '%b %Y', '%y-%b', '%b-%y',
     ]
     for fmt in formats:
         try:
-            return datetime.strptime(s, fmt).strftime('%b-%Y')
+            return datetime.strptime(s, fmt).strftime('%y-%b')
         except ValueError:
             continue
     try:
-        return pd.to_datetime(s, dayfirst=True).strftime('%b-%Y')
+        return pd.to_datetime(s, dayfirst=True).strftime('%y-%b')
     except Exception:
         return s
 
@@ -435,15 +430,15 @@ def process_pharmacy_dataframe(df, sheet_name='Sheet1', supplier_name=''):
     out = pd.DataFrame(index=range(len(df)))
     out['Supplier Name *']  = supplier_name
     out['Medicine Name*']   = df[med_col].apply(lambda v: str(v).strip().upper() if not pd.isna(v) and str(v).strip() else '') if med_col else ''
-    out['HSN No.']          = df[hsn_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if hsn_col else ''
+    out['HSN No.']          = df[hsn_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '0') if hsn_col else '0'
     out['Batch No. *']      = df[batch_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if batch_col else ''
     out['Exp. Date*']       = df[exp_col].apply(clean_exp_date) if exp_col else ''
     out['Pack* & Free Pack']= df[pack_col].apply(parse_pack) if pack_col else ''
     out['Item per Pack']    = df[ipack_col].apply(parse_item_per_pack) if ipack_col else ''
     out['MRP*']             = df[mrp_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if mrp_col else ''
     out['Pure Cost*']       = df[cost_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if cost_col else ''
-    out['Discount *']       = df[disc_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if disc_col else ''
-    out['GST No.*']         = df[gst_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '') if gst_col else ''
+    out['Discount *']       = df[disc_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '0') if disc_col else '0'
+    out['GST No.*']         = df[gst_col].apply(lambda v: str(v).strip() if not pd.isna(v) and str(v).strip() not in ('', 'nan') else '0') if gst_col else '0'
 
     out = out[out['Medicine Name*'].str.strip().ne('')]
     out = out.reset_index(drop=True)
@@ -535,12 +530,6 @@ def clean():
     if not f.filename or not allowed_file(f.filename):
         return jsonify({'error': 'Unsupported file type. Upload .xlsx, .xls or .csv'}), 400
 
-    patient_id_prefix = request.form.get('patient_id_prefix', '').strip().upper()
-    if patient_id_prefix and not re.match(r'^[A-Z0-9]+$', patient_id_prefix):
-        return jsonify({'error': 'Patient ID Prefix must be alphanumeric only.'}), 400
-    if len(patient_id_prefix) > 20:
-        return jsonify({'error': 'Patient ID Prefix must be 20 characters or fewer.'}), 400
-
     filename = secure_filename(f.filename)
     ext = filename.rsplit('.', 1)[1].lower()
 
@@ -574,7 +563,7 @@ def clean():
         for sn, df in sheets.items():
             if df.empty:
                 continue
-            cleaned_df, stats = process_dataframe(df, sheet_name=sn, patient_id_prefix=patient_id_prefix)
+            cleaned_df, stats = process_dataframe(df, sheet_name=sn)
             if not cleaned_df.empty:
                 all_dfs.append(cleaned_df)
             all_stats.append(stats)
@@ -587,7 +576,7 @@ def clean():
 
     base_name = filename.rsplit('.', 1)[0]
     out_name = f'Cleaned_{base_name}.xlsx'
-    buf = write_excel(all_dfs, all_stats, filename, patient_id_prefix=patient_id_prefix)
+    buf = write_excel(all_dfs, all_stats, filename)
 
     return send_file(
         buf,
